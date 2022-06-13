@@ -12,6 +12,7 @@
 		C5A990B02852A16C00F50336 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C5A990AF2852A16C00F50336 /* Assets.xcassets */; };
 		C5A990B32852A16C00F50336 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = C5A990B12852A16C00F50336 /* MainMenu.xib */; };
 		C5A990B52852A16C00F50336 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = C5A990B42852A16C00F50336 /* main.m */; };
+		C5A990BE2852A9F400F50336 /* zoraAPIController.m in Sources */ = {isa = PBXBuildFile; fileRef = C5A990BD2852A9F400F50336 /* zoraAPIController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +24,8 @@
 		C5A990B22852A16C00F50336 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		C5A990B42852A16C00F50336 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		C5A990B62852A16C00F50336 /* Ponder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ponder.entitlements; sourceTree = "<group>"; };
+		C5A990BC2852A9F400F50336 /* zoraAPIController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = zoraAPIController.h; sourceTree = "<group>"; };
+		C5A990BD2852A9F400F50336 /* zoraAPIController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = zoraAPIController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +60,8 @@
 			children = (
 				C5A990A92852A16B00F50336 /* AppDelegate.h */,
 				C5A990AA2852A16B00F50336 /* AppDelegate.m */,
+				C5A990BC2852A9F400F50336 /* zoraAPIController.h */,
+				C5A990BD2852A9F400F50336 /* zoraAPIController.m */,
 				C5A990AF2852A16C00F50336 /* Assets.xcassets */,
 				C5A990B12852A16C00F50336 /* MainMenu.xib */,
 				C5A990B42852A16C00F50336 /* main.m */,
@@ -135,6 +140,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C5A990BE2852A9F400F50336 /* zoraAPIController.m in Sources */,
 				C5A990AB2852A16B00F50336 /* AppDelegate.m in Sources */,
 				C5A990B52852A16C00F50336 /* main.m in Sources */,
 				C5A990AE2852A16B00F50336 /* Ponder.xcdatamodeld in Sources */,

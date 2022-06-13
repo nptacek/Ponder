@@ -2,7 +2,7 @@
 //  main.m
 //  Ponder
 //
-//  Created by Mistress Gallium on 6/9/22.
+//  Created by nptacek.eth on 6/9/22.
 //
 
 #import <Cocoa/Cocoa.h>

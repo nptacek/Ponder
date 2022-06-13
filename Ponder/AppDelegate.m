@@ -2,10 +2,11 @@
 //  AppDelegate.m
 //  Ponder
 //
-//  Created by Mistress Gallium on 6/9/22.
+//  Created by nptacek.eth on 6/9/22.
 //
 
 #import "AppDelegate.h"
+#import "zoraAPIController.h"
 
 @interface AppDelegate ()
 
@@ -30,6 +31,150 @@
     return YES;
 }
 
+- (IBAction)getCollectionStatsAction:(id)sender
+{
+    if([self didValidateContractAddress:self.addContractPanelAddressField.stringValue]){
+        zoraAPIController *myZoraAPIController = [zoraAPIController sharedInstance];
+        [myZoraAPIController getStatsForContractAddress:self.addContractPanelAddressField.stringValue withCompletionHandler:^(NSDictionary *statsDict) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                //update UI here
+                [self.contractAddressOutputField setStringValue:[[[statsDict valueForKeyPath:@"data.collections.nodes"] objectAtIndex:0] objectForKey:@"address"]];
+                [self.contractNameOutputField setStringValue:[[[statsDict valueForKeyPath:@"data.collections.nodes"] objectAtIndex:0] objectForKey:@"name"]];
+                [self.contractSymbolOutputField setStringValue:[[[statsDict valueForKeyPath:@"data.collections.nodes"] objectAtIndex:0] objectForKey:@"symbol"]];
+                [self.contractTotalSupplyOutputField setStringValue:[[statsDict valueForKeyPath:@"data.aggregateStat"] objectForKey:@"nftCount"]];
+                [self.contractOwnerCountOutputField setStringValue:[[statsDict valueForKeyPath:@"data.aggregateStat"] objectForKey:@"ownerCount"]];
+                
+                NSString *ownerString = @"";
+                for(NSDictionary *ownerDict in [statsDict valueForKeyPath:@"data.aggregateStat.ownersByCount.nodes"]){
+                    ownerString = [ownerString stringByAppendingFormat:@"%@ (%@)\n", [ownerDict objectForKey:@"owner"], [ownerDict objectForKey:@"count"]];
+                }
+                
+                [self.contractStatsOutputField setStringValue:ownerString];
+            });
+        }];
+    }
+    else{
+        NSLog(@"please enter a valid hex address!");
+    }
+}
+
+- (IBAction)getTopCollectionsAction:(id)sender
+{
+    if([self didValidateContractAddress:self.addContractPanelAddressField.stringValue]){
+        __block NSMutableArray *mutOwnerArray = [[NSMutableArray alloc] initWithCapacity:0];
+        zoraAPIController *myZoraAPIController = [zoraAPIController sharedInstance];
+        [myZoraAPIController getTokenHoldersForContractAddress:self.addContractPanelAddressField.stringValue andOffset:@"" withCompletionHandler:^(BOOL hasNextPage, NSArray *tokenHoldersArray) {
+            [mutOwnerArray addObjectsFromArray:tokenHoldersArray];
+            if(hasNextPage){
+            //    NSLog(@"hasNextPage");
+            }
+            else {
+                NSLog(@"NO");
+                NSLog(@"tokenHoldersArray: %lu", (unsigned long)[tokenHoldersArray count]);
+                NSLog(@"mutOwnerArray count: %lu", (unsigned long)[mutOwnerArray count]);
+                [self parseMultipleWallets:[mutOwnerArray copy]];
+            }
+        }];
+    }
+    else{
+        NSLog(@"please enter a valid hex address!");
+    }
+}
+
+- (void)parseMultipleWallets:(NSArray *)walletAddressArray
+{
+    NSMutableArray *arrayOfArrays = [NSMutableArray array];
+    int batchSize = 10;
+
+    for(int j = 0; j < [walletAddressArray count]; j += batchSize) {
+
+        NSArray *subarray = [walletAddressArray subarrayWithRange:NSMakeRange(j, MIN(batchSize, [walletAddressArray count] - j))];
+        [arrayOfArrays addObject:subarray];
+    }
+    
+    NSLog(@"arrayOfArrays: %@", arrayOfArrays);
+    [self parseMultipleWallets2:arrayOfArrays];
+}
+
+- (void)parseMultipleWallets2:(NSArray *)walletAddressArray
+{
+    NSLog(@"parsing multiple wallets!");
+    
+    zoraAPIController *myZoraAPIController = [zoraAPIController sharedInstance];
+    
+    __block NSCountedSet *aggregateContractCountedSet = [[NSCountedSet alloc] initWithCapacity:0];
+    __block NSMutableArray *mutContractArray = [[NSMutableArray alloc] initWithCapacity:0];
+    
+    NSTimeInterval delayInSeconds = -2.0;
+    
+    for(int n = 0; n < [walletAddressArray count]; n+=1){
+        delayInSeconds += 2.0;
+        
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+            for(NSString *walletAddressString in [walletAddressArray objectAtIndex:n]){
+                NSLog(@"Analyzing wallet address: %@", walletAddressString);
+                [myZoraAPIController getTokensForWalletAddress:walletAddressString andOffset:@"" withCompletionHandler:^(BOOL hasNextPage, NSArray *tokenContractsArray) {
+                    [mutContractArray addObjectsFromArray:tokenContractsArray];
+                    if(hasNextPage){
+                     //   NSLog(@"hasNextPage");
+                    }
+                    else {
+                        NSCountedSet *myCountedSet = [[NSCountedSet alloc] initWithCapacity:0];
+                        [myCountedSet addObjectsFromArray:[mutContractArray copy]];
+                        
+                        [aggregateContractCountedSet addObjectsFromArray:[myCountedSet allObjects]];
+                        
+                        NSLog(@"aggregateContractCountedSet count: %lu", [aggregateContractCountedSet count]);
+
+                            NSMutableArray *dictArray = [NSMutableArray array];
+                            [aggregateContractCountedSet enumerateObjectsUsingBlock:^(id obj, BOOL *stop) {
+                                [dictArray addObject:@{@"object": obj,
+                                                       @"count": @([aggregateContractCountedSet countForObject:obj])}];
+                            }];
+                        
+                        NSArray *sortedDictArray = [dictArray sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"count" ascending:NO]]];
+                        
+                        if([sortedDictArray count] >= 10){
+                            NSLog(@"Top Communities\n\n");
+                            for(int i = 0; i < 10; i++){
+                                NSLog(@"#%i: %@ (%i holders)\n\n",i+1, [[sortedDictArray objectAtIndex:i] objectForKey:@"object"], [[[sortedDictArray objectAtIndex:i] objectForKey:@"count"] intValue]);
+                            }
+                        }
+                        
+                        [mutContractArray removeAllObjects];
+                    }
+                }];
+            }
+        });
+    }
+}
+
+
+
+#pragma mark - validation code
+- (BOOL)didValidateContractAddress:(NSString *)address_string
+{
+    //check to see if we have a valid contract address based on character length (accounting for the possibility they entered the 0x prefix)
+    if(address_string.length < 40 || address_string.length > 42){
+        return NO;  //address is either too short or too long
+    }
+    
+    NSCharacterSet *hexCharSet = [[NSCharacterSet characterSetWithCharactersInString:@"0123456789ABCDEFXabcdefx"] invertedSet];
+    BOOL isValid = NO;
+    
+    if(address_string.length == 42){
+        //check for the 0x prefix
+        if([address_string hasPrefix:@"0x"] || [address_string hasPrefix:@"0X"]){
+            isValid = (NSNotFound == [address_string rangeOfCharacterFromSet:hexCharSet].location);
+        }
+    }
+    else if(address_string.length == 40){
+        isValid = (NSNotFound == [address_string rangeOfCharacterFromSet:hexCharSet].location);
+    }
+    
+    return isValid;
+}
 
 #pragma mark - Core Data stack
 
